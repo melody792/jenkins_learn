@@ -20,7 +20,7 @@ dependencies {
 }
 
 def failures = new File("${buildDir}/failures.log")
-def failedTests = [] 
+def failedTests = []
 if (failures.exists()) {
     failures.eachLine { line ->
         def tokens = line.split(",")
