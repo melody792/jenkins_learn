@@ -73,3 +73,30 @@ uploadArchives {
 }
 println name
 println project.name
+
+/**
+ node{
+ def job_list = ['job 1', 'job 2']
+
+ for (job in job_list) {
+ stage(job){
+ println ("${job}")
+ println("default: currentBuild.result: ${currentBuild.result}")
+ try{
+ retry(3) {
+ println("execute ${job}")
+ if (job == 'job 1') {
+ throw new Exception()
+ }
+ currentBuild.result = "SUCCESS"
+ println("Job was successful. currentBuild.result: ${currentBuild.result}")
+ }
+ } catch (e) {
+ currentBuild.result = "FAILURE"
+ println("catch exeption. currentBuild.result: ${currentBuild.result}")
+ }
+ println("result: currentBuild.result: ${currentBuild.result}")
+ }
+ }
+ }
+ **/
