@@ -1,0 +1,75 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+version = '1.0'
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Gradle Quickstart',
+                   'Implementation-Version': version
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.springframework.security', name: 'spring-security-core', version: '5.1.1.RELEASE'
+    compile group: 'commons-collections', name: 'commons-collections', version: '3.2.2'
+    testCompile group: 'junit', name: 'junit', version: '4.+'
+}
+
+def failures = new File("${buildDir}/failures.log")
+def failedTests = [] 
+if (failures.exists()) {
+    failures.eachLine { line ->
+        def tokens = line.split(",")
+        failedTests << tokens[0]+"."+tokens[1]
+    }
+}
+failures.delete()
+
+test {
+    filter {
+        failedTests.each {
+            println 'run failed test again----------' + "${it}"
+            includeTestsMatching "${it}"
+        }
+    }
+    systemProperties 'property': 'value'
+    useJUnit {
+        //failFast = true
+        //ignoreFailures = true
+    }
+    afterTest { desc, result ->
+        println 'test: ' + "${desc.name}   " + result.resultType
+        if ("FAILURE" == result.resultType as String) {
+            failures.withWriterAppend { 
+                it.write("${desc.className},${desc.name}\n")
+            }
+        }
+    }
+}
+
+
+task taskX {
+    doLast {
+        println 'taskX'
+        throw new RuntimeException('www')
+    }
+}
+task taskY {
+    doLast {
+        println 'taskY'
+    }
+}
+
+uploadArchives {
+    repositories {
+       flatDir {
+           dirs 'repos'
+       }
+    }
+}
+println name
+println project.name
