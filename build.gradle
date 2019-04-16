@@ -29,7 +29,6 @@ if (failures.exists()) {
 }
 failures.delete()
 
-
 test {
     filter {
         failedTests.each {
