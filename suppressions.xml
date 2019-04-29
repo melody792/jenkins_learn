@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.2.xsd">
+   <suppress>
+      <notes><![CDATA[
+   file name: assistant-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:assistant:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>g vulnerable components may include the following steps:
+
+      Integrate OWASP Dependency Check to build system and Jenkins:
+      The check should be included to a regular job which is triggered by a commit or pull request.
+      The check should be run regularly in a separate job.
+      Introduce a quality gate which fails jobs if a vulnerability with high severity level was found. Let’s refer to NIST, and say that a vulnerability has a high severity level if its CVSS score is higher than 7.
+      Once a job failed, an engineer should evaluate reported vulnerabilities. A security engineer may be involved here as well. If they decide that the vulnerabilities are dangerous enough, then the vulnerable components should be updated immediately.
+      If they decide that the vulnerabilities are not that critical for the project, then they do the following:
+      File a ticket for updating vulnerable components.
+      Add a record for the identified vulnerabilities to a suppression file to stop the build failing. The record should include a link to the ticket. Here we use the suppression file as a list of confirmed known failures which need to be fixed.
+      Review a list of tickets regularly, and plan fixing vulnerable components.
+
+      This process is trying to achieve a balance between security and development. On the one hand, there is a way how we can postpone updating vulnerable dependencies if it’s acceptable. On the other hand, we have a clear backlog for updating vulnerable components, so we can control the situation a bit better. Of course, this process doesn’t magically solve the problem – in the end someone needs to go and update the libs.
+      Implementing a quality gate with OWASP Dependency Check
+
+      How to set up the quality gate defined above? Fortunately it’s pretty simple. OWASP Dependency Check has an option that sets a CVSS score and instructs the tool to return a non-zero exit code if a vulnerability with a CVSS score equal to or higher was identified. Plugins for Gradle, Maven and Jenkins supports this option. Here is an example of build.gradle file which introduces such a quality gate:
+
+      buildscript {
+      repositories {
+      mavenCentral()
+      }
+      dependencies {
+      classpath 'org.springframework.boot:spring-boot-gradle-plugin:2.0.1.RELEASE'
+      classpath 'org.owasp:dependency-check-gradle:3.1.2'
+      }
+      }
+
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.springframework.boot'
+      apply plugin: 'io.spring.dependency-management'
+      apply plugin: 'org.owasp.dependencycheck'
+
+      bootJar {
+      baseName = 'spring-boot-fun'
+      version =  '0.0.1'
+      }
+
+      repositories {
+      mavenCentral()
+      }
+
+      sourceCompatibility = 1.8
+      targetCompatibility = 1.8
+
+      dependencies {
+      // this dependency contains a couple of known vulnerabilities
+      compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.7.3'
+
+      compile 'org.springframework.boot:spring-boot-starter-web'
+      testCompile 'junit:junit'
+      }
+
+      // OWASP Dependency Check settings
+      dependencyCheck {
+
+      // let's ignore errors to make builds in Jenkins more stable
+      failOnError = false
+
+      // OWASP Dependency Check plugin for Jenkins needs an XML report,
+      // but humans may also need an HTML one
+      format = 'ALL'
+
+      // set up a quality gate for vulnerabilities with high severity level:
+      //   let's consider that a vulnerability has a high severity level if its CVSS score is higher than 7
+      //   the build is going to fail if vulnerabilities with high severity level found
+      failBuildOnCVSS = 7
+
+      // specify a list of known issues which contain:
+      //   false-positives
+      //   confirmed vulnerabilities which are not fixed yet, but we have a ticket for that
+      suppressionFile = 'dependency-check-known-issues.xml'
+      }
+      view raw
+      build.gradle hosted with ❤ by GitHub
+
+      To make a Dependency Check report available in Jenkins, you need to run dependencyCheckPublisher task in your Jenkins pipeline. Once the quality gate is configured, a job is going to fail if a vulnerability was found which means that the steps after Dependency Check may not be run. You need to make sure that dependencyCheckPublisher is always run even if the quality gate failed. Here is an example of Jenkinsfile:
+
+      pipeline {
+      agent any
+
+      stages {
+      stage('Build') {
+      steps {
+      sh './gradlew build'
+      }
+      }
+      stage('OWASP Dependency Check') {
+      steps {
+      sh './gradlew dependencyCheckAnalyze'
+      }
+      }
+      }
+
+      post {
+      always {
+      dependencyCheckPublisher pattern: 'build/reports/dependency-check-report.xml'
+      }
+      }
+      }
+      view raw
+      Jenkinsfile hosted with ❤ by GitHub
+
+      There is another nice improvement which can make our life a bit easier. OWASP Dependency Check uses the National Vulnerability Database (NVD). The tool downloads the whole database when it runs for the first time. Then, the tool tries to get updates regularly. Unfortunately it turns out that the NVD may be down sometimes. Dependency Check is going to fail when the NVD is not available. If we have the quality gate defined above, then jobs are going to fail as well which may block our CI/CD process. But that’s not what we want. To address this problem, most of plugins provide an option to ignore this kind of issues. But it means that we’re going to skip the check completely if the NVD is down. Fortunately there is a better solution. You can configure a separate Jenkins job which regularly downloads a copy of the NVD (for example, it can run every night). Then, you can configure other jobs to use the copy.
+
+      In conclusion, here you can find an example of Spring Boot application with the quality gate described above. Enjoy!
+
+      If you have found a spelling error, please, notify us by selecting that text and pressing Ctrl+Enter.
+      Facebook
+      Twitter
+      VK
+      LinkedIn
+      Telegram
+      Mail.Ru
+      Odnoklassniki
+      Reddit
+      LiveJournal
+      Pinterest
+      Hacker News
+      PocketShare
+
+      Examples of DNS rebinding attacks
+
+      DNS rebinding attacks have been known for quite a long time. For example, Stanford Web Security…
+      Global buffer overflow
+
+      There are a lot of articles, posts, and even books which describe a stack buffer…
+      LDAP injections
+
+      Everybody knows about SQL injections. It's like a celebrity in the world of software security.…
+
+      Post navigation
+      ← An overview of secure usage of TLS Running picotls TLS 1.3 server with AddressSanitizer and Docker →
+      avatar
+      Subscribe
+      Search for:
+      Categories
+
+      DIY and electronics (7)
+      Nonsense (1)
+      Security (20)
+      Tech (3)
+      Tips and Tricks (2)
+      Where I've been to (1)
+
+      Tags
+
+      AddressSanitizer (1) AFL (1) API (1) DHT22 (1) DIY (3) DNS (2) Docker (2) Electronics (6) ESP8266 (3) Fuzzing (5) GC (2) Hotspot (3) Internet of Shit (3) IoT (3) Java (12) JEP (3) JSSE (2) JVM (3) LDAP (1) Machine Learning (1) MicroPython (3) Nonsense (1) Open Source (8) picotls (2) Python (6) REST (1) Russia (2) Security (18) Spring (1) SSH (1) stm32 (2) TLS (4) TLS 1.3 (5) w3af (1) Web security (5) zzuf (1)
+
+      Facebook
+      Twitter
+      Instagram
+      GitHub
+      LinkedIn
+      YouTube Channel
+
+      Subscribe to The blog of a gypsy engineer by Email
+
+      If you have found a spelling error, please, notify us by selecting that text and pressing Ctrl+Enter.
+
+      <notes><![CDATA[
+   file name: conversation-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:conversation:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+   file name: discovery-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:discovery:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+   file name: language-translator-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:language-translator:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+   file name: natural-language-classifier-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:natural-language-classifier:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+   file name: natural-language-understanding-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:natural-language-understanding:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+   file name: personality-insights-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:personality-insights:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+   file name: speech-to-text-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:speech-to-text:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+   file name: text-to-speech-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:text-to-speech:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+   file name: tone-analyzer-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:tone-analyzer:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+   file name: visual-recognition-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:visual-recognition:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+   file name: core-6.4.0.jar
+   ]]></notes>
+      <gav regex="true">^com\.ibm\.watson\.developer_cloud:core:.*$</gav>
+      <cve>CVE-2016-0391</cve>
+   </suppress>
+</suppressions>

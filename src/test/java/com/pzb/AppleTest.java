@@ -1,4 +1,4 @@
-package org.gradle;
+package com.pzb;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -7,7 +7,7 @@ import java.util.Random;
 
 import static org.junit.Assert.*;
 
-public class PersonTest {
+public class AppleTest {
     String testStr = "Larry1";
 
     boolean flag = false;
@@ -19,16 +19,16 @@ public class PersonTest {
     }
 
     @Test
-    public void canConstructAPersonWithAName() {
+    public void canConstructAAppleWithAName() {
 
-        Person person = new Person("Larry");
+        Apple apple = new Apple("Larry");
         System.out.println("flag="+flag);
-        assertEquals(testStr, person.getName());
+        assertEquals(testStr, apple.getName());
     }
 
     @Test
     public void customTest() {
-        Person person = new Person("Larry");
-        assertEquals("Larry", person.getName());
+        Apple apple = new Apple("Larry");
+        assertEquals("Larry", apple.getName());
     }
 }
