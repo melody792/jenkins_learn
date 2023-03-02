@@ -1,18 +1,76 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-version = '1.0'
-jar {
-    manifest {
-        attributes 'Implementation-Title': 'Gradle Quickstart',
-                   'Implementation-Version': version
-    }
-}
-
 repositories {
     mavenCentral()
 }
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.owasp:dependency-check-gradle:4.0.2'
+    }
+}
 
+apply plugin: 'org.owasp.dependencycheck'
+
+dependencyCheck {
+    suppressionFile = "${project.rootDir}/suppressions.xml"
+}
+
+ext {
+    nodeVersion = '8.16.0'
+    npmVersion = '6.4.1'
+    archaiusVersion = '0.7.4'
+    commonsCollectionsVersion = '3.2.2'
+    concurrentVersion = '1.0'
+    cucumberVersion = '3.0.0'
+    ehCacheVersion = '3.3.1'
+    eurekaVersion = '1.4.11'
+    findBugsAnntionVersion = '2.0.3'
+    gkVersion = '2.0.0'
+    guavaVersion = '22.0'
+    guiceVersion = '4.0'
+    governatorVersion = '1.12.11'
+    hamcrestVersion = '1.3'
+    httpComponentsVersion = '4.5.6'
+    hystrixVersion = '1.5.2'
+    jacksonVersion = '2.8.4' // they're using 2.9.5
+    jacocoVersion = '0.7.6.201602180812'
+    ehCacheVersion = '3.3.1'
+    jCacheVersion = '1.0.0'
+    jaxRsVersion = '2.0.1'
+    jerseyVersion = '1.19'
+    jodaVersion = '2.9.4'
+    junitVersion = '4.12'
+    mockitoVersion = '2.2.17'
+    netflixInfixVersion = '0.3.0'
+    openpojoVersion = '0.8.4'
+    ribbonVersion = '2.1.5'
+    rxjavaVersion = '1.1.5'
+    rxjava2Version = '2.1.0'
+    servletApiVerison = '3.1.0'
+    servoVersion = '0.10.1'
+    slf4jVersion = '1.7.12'
+    wlpBasicsVersion = '1.2.15'
+    wlpBootstrapVersion = '2.1.1'
+    wlpSecurityVersion = '1.2.15'
+    pltJWTVersion = '17.7.10'
+    jstlVersion = '1.2'
+    poiVersion = '3.17'
+    luceneVersion = '7.1.0'
+    libertyVersion = '18.0.0_04'
+    // https://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/wasdev/downloads/wlp/index.yml
+    libertyApiVersion = '18.0.0.1'
+    nimbusVersion = '4.34.1'
+
+    pltIntentServiceVersion = '1.0.8'
+    elasticsearchVersion = '6.4.2'
+}
+//dependencyCheck {
+//    suppressionFiles = ['dependency-check-suppressions.xml']
+//}
 dependencies {
     compile group: 'org.springframework.security', name: 'spring-security-core', version: '5.1.1.RELEASE'
     compile group: 'commons-collections', name: 'commons-collections', version: '3.2.2'
@@ -30,11 +88,19 @@ if (failures.exists()) {
 failures.delete()
 
 test {
-    filter {
-        failedTests.each {
-            println 'run failed test again----------' + "${it}"
-            includeTestsMatching "${it}"
+    if (project.hasProperty('onlyFailedTestCases')) {
+        println onlyFailedTestCases
+        filter {
+            failedTests.each {
+                println 'run failed test again----------' + "${it}"
+                includeTestsMatching "${it}"
+            }
         }
+    } else {
+        println 'no onlyFailedTestCases'
+    }
+    filter {
+        includeTestsMatching "com.pzb.*"
     }
     systemProperties 'property': 'value'
     useJUnit {
@@ -44,7 +110,7 @@ test {
     afterTest { desc, result ->
         println 'test: ' + "${desc.name}   " + result.resultType
         if ("FAILURE" == result.resultType as String) {
-            failures.withWriterAppend { 
+            failures.withWriterAppend {
                 it.write("${desc.className},${desc.name}\n")
             }
         }
@@ -55,12 +121,12 @@ test {
 task taskX {
     doLast {
         println 'taskX'
-        throw new RuntimeException('www')
+        throw new Exception('www')
     }
 }
-task taskY {
-    doLast {
-        println 'taskY'
+task taskY(dependsOn: taskX) <<{
+    if(tasks.taskX.didWork){
+        println 'taskX didwork'
     }
 }
 
@@ -73,30 +139,3 @@ uploadArchives {
 }
 println name
 println project.name
-
-/**
- node{
- def job_list = ['job 1', 'job 2']
-
- for (job in job_list) {
- stage(job){
- println ("${job}")
- println("default: currentBuild.result: ${currentBuild.result}")
- try{
- retry(3) {
- println("execute ${job}")
- if (job == 'job 1') {
- throw new Exception()
- }
- currentBuild.result = "SUCCESS"
- println("Job was successful. currentBuild.result: ${currentBuild.result}")
- }
- } catch (e) {
- currentBuild.result = "FAILURE"
- println("catch exeption. currentBuild.result: ${currentBuild.result}")
- }
- println("result: currentBuild.result: ${currentBuild.result}")
- }
- }
- }
- **/
